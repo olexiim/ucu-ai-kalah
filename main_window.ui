@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>kalah_window</class>
+ <widget class="QDialog" name="kalah_window">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>688</width>
+    <height>335</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>KALAH Gameboard</string>
+  </property>
+  <widget class="QGraphicsView" name="board">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>43</y>
+     <width>537</width>
+     <height>243</height>
+    </rect>
+   </property>
+   <property name="viewportUpdateMode">
+    <enum>QGraphicsView::FullViewportUpdate</enum>
+   </property>
+  </widget>
+  <widget class="QLabel" name="active_player">
+   <property name="geometry">
+    <rect>
+     <x>30</x>
+     <y>13</y>
+     <width>361</width>
+     <height>16</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <italic>true</italic>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Player 1 moves</string>
+   </property>
+   <property name="scaledContents">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QLabel" name="time_left">
+   <property name="geometry">
+    <rect>
+     <x>400</x>
+     <y>13</y>
+     <width>151</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+     <weight>75</weight>
+     <italic>true</italic>
+     <bold>true</bold>
+    </font>
+   </property>
+   <property name="text">
+    <string>Time left: 00:00</string>
+   </property>
+   <property name="scaledContents">
+    <bool>true</bool>
+   </property>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>570</x>
+     <y>43</y>
+     <width>111</width>
+     <height>182</height>
+    </rect>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
+     <widget class="QPushButton" name="newgame">
+      <property name="text">
+       <string>New Game</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="stopgame">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Stop Game</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="savegame">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Save Game</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="loadgame">
+      <property name="text">
+       <string>Load Game</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="history">
+      <property name="text">
+       <string>History</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="options">
+      <property name="text">
+       <string>Options</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QWidget" name="layoutWidget">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>300</y>
+     <width>171</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout">
+    <item>
+     <widget class="QPushButton" name="undo">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
+      <property name="text">
+       <string>Undo move</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="advice">
+      <property name="text">
+       <string>Make an advice</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
