@@ -1,7 +1,7 @@
 Kalah Gameboard is a software that implements an ancient board game called
 Kalah or Mancala.
 
-From Wikipedia (en.wikipedia.org/wiki/Kalah):
+From [Wikipedia](en.wikipedia.org/wiki/Kalah):
     
     The game requires a Kalah board and 36 - 72 seeds or stones. The board has 
     six small pits, called houses, on each side; and a big pit, called a Kalah 
@@ -30,53 +30,53 @@ From Wikipedia (en.wikipedia.org/wiki/Kalah):
     The game may vary with amount of initial seeds: 3, 4, 5, 6. The more seeds
     the more harder to play.
 
-Tips of how to create your own gameplay method.
+### Tips of how to create your own gameplay method.
 
-    To create your own search method that plays Kalah you should 
-    create a method class that inherited from the Method class 
-    (methods/method.py). You should place a new method's file to the methods
-    folder. When you finished creating your method it will be accessible in the 
-    Kalah options dialog window. For more details please check examples in 
-    methods/random.py and methods/minmax.py
+To create your own search method that plays Kalah you should 
+create a method class that inherited from the Method class 
+(methods/method.py). You should place a new method's file to the methods
+folder. When you finished creating your method it will be accessible in the 
+Kalah options dialog window. For more details please check examples in 
+methods/random.py and methods/minmax.py
 
-Tips of how to create your own minimax heuristic method.
+### Tips of how to create your own minimax heuristic method.
 
-    Just take methods/minmax.py file and carefully read the comments and 
-    explanations. You will find there that you should simply rewrite only
-    two functions (_utility and _terminal_test) to create your own
-    minimax heuristic method.
+Just take methods/minmax.py file and carefully read the comments and 
+explanations. You will find there that you should simply rewrite only
+two functions `_utility` and `_terminal_test` to create your own
+minimax heuristic method.
     
-Project structure
+## Project structure
 
     images - images folder
     methods - package for all gameplay methods
     methods/__init__.py - package init file (does nothing)
-    methods/method.py - module with most abstract method class called Method
+    methods/method.py - module with most abstract method class called `Method`
     methods/minmax.py - implementation of minimax heuristic algorithm
     methods/random.py - implementation of random dummy algorithm
-    methods/state.py - module with State class for Kalah game; check it - there
+    methods/state.py - module with `State` class for Kalah game; check it - there
                         are all Kalah's gaming rules are implemented (loof up
-                        to make_move function)
+                        to `make_move` function)
     main.py - main project module; run it to work with Kalah Gameboard
     main_window.py - main window module of the Kalah Gameboard
-    main_window.ui - QtDesigner file for the main window
+    main_window.ui - `QtDesigner` file for the main window
     options_dialog.py - dialog window for main options of the Kalah Gameboard
-    options_dialog.ui - dialog window for main options QtDesigner
+    options_dialog.ui - dialog window for main options `QtDesigner`
     student_gamer.py - use this to run Kalah games between AIs in console
 
-Prerequisites
+## Prerequisites
     
-    You will need to install PyQt5 (https://pypi.org/project/PyQt5/) to 
-    have the Kalah project work properly.
+You will need to install [PyQt5](https://pypi.org/project/PyQt5/) to have 
+the Kalah project work properly.
 
-How to run
+## How to run
 
-    Use main.py to play Kalah with GUI. You may play in different modes: 
-    human/human, human/AI, AI/AI.
+Use main.py to play Kalah with GUI. You may play in different modes: 
+human/human, human/AI, AI/AI.
 
-    Use student_gamer.py to run single games or tournament games between 
-    different AIs. The results will be posted to the game_logs directory 
-    and to the results.txt log file.
+Use student_gamer.py to run single games or tournament games between 
+different AIs. The results will be posted to the game_logs directory 
+and to the results.txt log file.
     
 License agreement
 
