@@ -1,7 +1,7 @@
 Kalah Gameboard is a software that implements an ancient board game called
 Kalah or Mancala.
 
-From [Wikipedia](en.wikipedia.org/wiki/Kalah):
+From [Wikipedia](https://en.wikipedia.org/wiki/Kalah):
     
     The game requires a Kalah board and 36 - 72 seeds or stones. The board has 
     six small pits, called houses, on each side; and a big pit, called a Kalah 
@@ -78,7 +78,7 @@ Use student_gamer.py to run single games or tournament games between
 different AIs. The results will be posted to the game_logs directory 
 and to the results.txt log file.
     
-License agreement
+## License agreement
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -93,7 +93,7 @@ License agreement
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-Author information
+## Author information
 
     Oleksii Molchanovskyi
     Ukrainian Catholic University
