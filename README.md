@@ -66,14 +66,17 @@ Project structure
 
 Prerequisites
     
-    You will need to install PyQt5 (https://pypi.org/project/PyQt5/) to have the Kalah project work properly.
+    You will need to install PyQt5 (https://pypi.org/project/PyQt5/) to 
+    have the Kalah project work properly.
 
 How to run
 
-    Use main.py to play Kalah with GUI. You may play in different modes: human/human, human/AI, AI/AI.
+    Use main.py to play Kalah with GUI. You may play in different modes: 
+    human/human, human/AI, AI/AI.
 
-    Use student_gamer.py to run single games or tournament games between different AIs. The results will be 
-    posted to the game_logs directory and to the results.txt log file.
+    Use student_gamer.py to run single games or tournament games between 
+    different AIs. The results will be posted to the game_logs directory 
+    and to the results.txt log file.
     
 License agreement
 
