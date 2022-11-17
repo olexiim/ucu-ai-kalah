@@ -9,7 +9,6 @@ import os
 from os.path import isfile, join
 from importlib import import_module
 from multiprocessing import Process, Pipe
-from PyQt5 import QtCore, QtGui, QtWidgets
 
 
 class AsyncRunProcess(Process):
@@ -26,42 +25,58 @@ class AsyncRunProcess(Process):
         self.conn.send(("finish", result))
 
 
-class AsyncRun(QtCore.QObject):
+class AsyncRun:
     """Class that runs method instance for a problem asynchronously"""
-    success = QtCore.pyqtSignal([int])
-    finished = QtCore.pyqtSignal()
     stop = False
+    allowed_time = None
 
-    def __init__(self, obj, state):
-        QtCore.QObject.__init__(self)
+    def __init__(self, obj, state, timer_limit=-1):
         self.obj = obj
         self.state = state
+        if timer_limit < 0:
+            self.allowed_time = float('inf')
+        else:
+            self.allowed_time = timer_limit
 
     def run(self):
         print("<{}> thinks...".format(self.obj.name()))
-        start_time = time.time()
         parent_conn, child_conn = Pipe()
         self.process = AsyncRunProcess(self.obj, self.state, child_conn)
         self.process.start()
-        while not self.stop and not parent_conn.poll():
+        start_time = time.perf_counter()
+        while time.perf_counter() - start_time < self.allowed_time and not parent_conn.poll():
             time.sleep(0.1)
-        if self.stop:
+
+        if time.perf_counter() - start_time > self.allowed_time:
             self.process.terminate()
             self.process.join()
+            return None, "Time out"
         elif parent_conn.poll():
             msg, result = parent_conn.recv()
-            print("Calculation finished in %.2f seconds" % (time.time() - start_time))
+            print("Calculation finished in {:0.2f} seconds, process PID {}".format(time.perf_counter() - start_time, self.process.pid))
             self.process.join()
-            self.success.emit(result)
-            time.sleep(1)
-        self.finished.emit()
+            # print("Process status:", self.process.is_alive())
+            return result, "Success"
+            # time.sleep(1)
 
-    def stopWork(self):
-        time.sleep(2)
-        self.stop = True
+        return None, "Unknown"
 
 
-# class KalahGamer(QtGui.QMainWindow):
+class KalahTimer:
+    start_time = 0
+
+    def __init__(self, start_time=None):
+        if not start_time:
+            self.start_time = time.perf_counter()
+        else:
+            self.start_time = start_time
+
+    def start(self):
+        self.start_time = time.perf_counter()
+
+    def elapsed(self):
+        return time.perf_counter() - self.start_time
+
 class KalahGamer:
     methods = {}
     players = [None, None]
@@ -72,10 +87,8 @@ class KalahGamer:
     method_path = "methods"
 
     def __init__(self, result_file='results.txt', turn_time_limit=30, number_of_stones=5):
-        #        QtGui.QWidget.__init__(self, None)
-        self.game_timer = QtCore.QTimer()
-        self.game_timer.timeout.connect(self.update_game_timer)
-        self.total_timer = QtCore.QElapsedTimer()
+        self.total_timer = KalahTimer()
+
         if not self.load_player_methods(self.method_path, self.methods):
             print("Error: no methods found in ()".format(self.method_path))
         else:
@@ -149,7 +162,7 @@ class KalahGamer:
         self.current_state = st.KalahState(self.number_of_stones)
         self.initial_state = self.current_state.copy()
         self.on_game = True
-        self.restart_game_timer()
+        # self.restart_game_timer()
         self.history = []
         self.total_timer.start()
 
@@ -166,31 +179,24 @@ class KalahGamer:
         obj = ai_class(player_num)
         obj.set_run_time_limit(self.turn_time_limit)
 
-        self.ai_run_object = AsyncRun(obj, self.current_state)
-        self.ai_run_thread = QtCore.QThread()
-        self.ai_run_thread.started.connect(self.ai_run_object.run, QtCore.Qt.DirectConnection)
-        self.ai_run_thread.finished.connect(self.ai_run_object.deleteLater, QtCore.Qt.DirectConnection)
-        self.ai_run_object.finished.connect(self.ai_run_object.deleteLater, QtCore.Qt.DirectConnection)
-        self.ai_run_object.finished.connect(self.ai_run_object.stopWork, QtCore.Qt.DirectConnection)
-        self.ai_run_object.finished.connect(self.ai_run_thread.quit, QtCore.Qt.DirectConnection)
-        self.ai_run_object.success.connect(self.process_ai_move)
-        self.ai_run_object.moveToThread(self.ai_run_thread)
-        self.ai_run_thread.start()
+        ai_run_object = AsyncRun(obj, self.current_state, self.turn_time_limit*1.1)
+        result, msg = ai_run_object.run()
+        # print("DEBUG: after ai_run_object. Result: {}. Msg {}".format(result, msg))
+        if result != None:
+            self.process_ai_move(result)
+        elif msg == "Timeout":
+            self.end_game_on_time()
+
 
     def process_ai_move(self, hole):
         print("Make AI move", self.active_player, hole)
-        self.ai_run_thread.wait()
-        del self.ai_run_thread
-        self.ai_run_thread = None
-        del self.ai_run_object
-        self.ai_run_object = None
 
         if self.on_game:
             self.make_move(self.active_player, hole)
 
     def end_game(self):
         if self.on_game:
-            self.game_timer.stop()
+            # self.game_timer.stop()
             score = self.current_state.end_game()
             if score[0] > score[1]:
                 self.game_winner = 1
@@ -204,7 +210,7 @@ class KalahGamer:
             msg += " Score %d:%d" % (score[0], score[1])
             self.game_result = {'message': msg, 'score_text': "%d:%d" % (score[0], score[1]),
                                 'score': (score[0], score[1]), 'winner': self.game_winner,
-                                'reason': 'normal', 'total_time': self.total_timer.elapsed() / 1000}
+                                'reason': 'normal', 'total_time': self.total_timer.elapsed()}
             self.on_game = False
 
             self.save_results()
@@ -212,13 +218,13 @@ class KalahGamer:
 
     def end_game_on_time(self):
         if self.on_game:
-            self.game_timer.stop()
+            # self.game_timer.stop()
             self.game_winner = 2 - self.active_player
             self.game_result_score = "Time out"
             msg = "Time out. Player %d wins!" % (2 - self.active_player)
             self.game_result = {'message': msg, 'score_text': "?:?",
                                 'score': (-1, -1), 'winner': self.game_winner,
-                                'reason': 'timeout', 'total_time': self.total_timer.elapsed() / 1000}
+                                'reason': 'timeout', 'total_time': self.total_timer.elapsed()}
             self.on_game = False
 
             self.save_results()
@@ -243,16 +249,7 @@ class KalahGamer:
             self.end_game()
         else:
             self.ai_moves()
-            self.restart_game_timer()
-
-    def update_game_timer(self):
-        self.game_timer_value -= 1
-        if self.game_timer_value == 0:
-            self.end_game_on_time()
-
-    def restart_game_timer(self):
-        self.game_timer_value = self.turn_time_limit * 1.1
-        self.game_timer.start(1000)
+            # self.restart_game_timer()
 
     def save_results(self):
         secs = self.game_result['total_time']
@@ -294,8 +291,6 @@ class KalahGamer:
         if self.games:
             game = self.games.pop(0)
             self.play_game(game['player_1'], game['player_2'], game['history_file'])
-        else:
-            app.exit()
 
 
 def run_single_game(player_1, player_2, players_path='methods',
@@ -323,10 +318,7 @@ def run_single_game(player_1, player_2, players_path='methods',
 
     print(f"Starting a game: {player_1} vs. {player_2}")
 
-    global app
-    app = QtWidgets.QApplication(sys.argv)
     gamer.run_games(games)
-    app.exec_()
 
 
 def run_tournament_one_to_many(player_one="", evaluation_methods=[],
@@ -354,15 +346,10 @@ def run_tournament_one_to_many(player_one="", evaluation_methods=[],
 
     print("Starting tournament: {} vs. {}".format(player_one, ", ".join(evaluation_methods)))
 
-    global app
-    app = QtWidgets.QApplication(sys.argv)
     gamer.run_games(games)
-    app.exec_()
 
 
 if __name__ == "__main__":
-    app = None
-
     # Run tournament one player vs. many players
     # You can add other players in evaluation_methods argument
     # run_tournament_one_to_many(player_one="Random",
@@ -370,4 +357,4 @@ if __name__ == "__main__":
     #                            turn_time_limit=10)
 
     # Run a single game between two players
-    run_single_game("Random", "Random", rolling_game=False, turn_time_limit=10)
+    run_single_game("BlankHole", "BlankHole", rolling_game=False, turn_time_limit=5)
