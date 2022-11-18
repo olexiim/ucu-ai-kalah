@@ -57,7 +57,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from main_window import Ui_kalah_window
 from options_dialog import Ui_kalah_options
 
-import methods.state as st
+import state as st
 
 import sys
 import inspect

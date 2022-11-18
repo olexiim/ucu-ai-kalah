@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import methods.state as st
+import state as st
 
 import sys
 import inspect
@@ -30,16 +30,19 @@ class AsyncRun:
     stop = False
     allowed_time = None
 
-    def __init__(self, obj, state, timer_limit=-1):
+    def __init__(self, obj, state, timer_limit=-1, be_silent=False):
         self.obj = obj
         self.state = state
+        self.be_silent = be_silent
         if timer_limit < 0:
             self.allowed_time = float('inf')
         else:
             self.allowed_time = timer_limit
 
     def run(self):
-        print("<{}> thinks...".format(self.obj.name()))
+        if not self.be_silent:
+            print("<{}> thinks...".format(self.obj.name()))
+
         parent_conn, child_conn = Pipe()
         self.process = AsyncRunProcess(self.obj, self.state, child_conn)
         self.process.start()
@@ -53,11 +56,10 @@ class AsyncRun:
             return None, "Time out"
         elif parent_conn.poll():
             msg, result = parent_conn.recv()
-            print("Calculation finished in {:0.2f} seconds, process PID {}".format(time.perf_counter() - start_time, self.process.pid))
+            if not self.be_silent:
+                print("Calculation finished in {:0.2f} seconds, process PID {}".format(time.perf_counter() - start_time, self.process.pid))
             self.process.join()
-            # print("Process status:", self.process.is_alive())
             return result, "Success"
-            # time.sleep(1)
 
         return None, "Unknown"
 
@@ -85,15 +87,33 @@ class KalahGamer:
     turn_time_limit = 15
     history = []
     method_path = "methods"
+    store_results = True
+    game_results = []
+    be_silent = False
 
-    def __init__(self, result_file='results.txt', turn_time_limit=30, number_of_stones=5):
+    def __init__(self, result_file='results.txt', turn_time_limit=30, number_of_stones=5,
+                 store_results=True, method_path="methods", be_silent=False):
         self.total_timer = KalahTimer()
+        if method_path == "" or not method_path:
+            method_path = "."
+        self.method_path = method_path
+
+        self.history = []
+        self.result_file = result_file
+        self.turn_time_limit = turn_time_limit
+        self.number_of_stones = number_of_stones
+        self.store_results = store_results
+        self.players = [None, None]
+        self.active_player = 0
+        self.game_results = []
+        self.be_silent = be_silent
 
         if not self.load_player_methods(self.method_path, self.methods):
             print("Error: no methods found in ()".format(self.method_path))
         else:
-            print("Found and loaded {} methods: {}".format(len(self.methods),
-                                                           ", ".join(map(lambda f: f['short_title'],
+            if not self.be_silent:
+                print("Found and loaded {} methods: {}".format(len(self.methods),
+                                                            ", ".join(map(lambda f: f['short_title'],
                                                                             self.methods.values()))))
         # if not self.load_student_methods():
         #     print("Error: no student methods found in ()".format(self.student_method_path))
@@ -101,10 +121,7 @@ class KalahGamer:
         #     print("Found and loaded {} student methods: {}".format(len(self.student_methods),
         #                                                            ", ".join(map(lambda f: f['short_title'],
         #                                                                          self.student_methods.values()))))
-        self.history = []
-        self.result_file = result_file
-        self.turn_time_limit = turn_time_limit
-        self.number_of_stones = number_of_stones
+
 
     def switch_player(self):
         self.active_player = (self.active_player + 1) % 2
@@ -116,7 +133,10 @@ class KalahGamer:
         sys.path.append(join(sys.path[0], method_path))
         counter = 0
         for method_file in method_files:
-            module_name = method_path + '.' + method_file.replace('.py', '')
+            module_name = ''
+            if method_path != ".":
+                module_name = method_path + '.'
+            module_name += method_file.replace('.py', '')
             import_module(module_name)
             for name, obj in inspect.getmembers(sys.modules[module_name]):
                 if inspect.isclass(obj) and obj.__bases__ and \
@@ -155,7 +175,8 @@ class KalahGamer:
                   player2_title, ":", self.players[player2_id])
             return False
 
-        print("Starting new game: {} vs. {}".format(player1_title, player2_title))
+        if not self.be_silent:
+            print("Starting new game: {} vs. {}".format(player1_title, player2_title))
 
         self.active_player = 0
         self.move_result = st.MoveEnds
@@ -166,7 +187,8 @@ class KalahGamer:
         self.history = []
         self.total_timer.start()
 
-        print("Initial state:\n", self.current_state.to_string())
+        if not self.be_silent:
+            print("Initial state:\n", self.current_state.to_string())
 
         self.ai_moves()
         return True
@@ -179,7 +201,7 @@ class KalahGamer:
         obj = ai_class(player_num)
         obj.set_run_time_limit(self.turn_time_limit)
 
-        ai_run_object = AsyncRun(obj, self.current_state, self.turn_time_limit*1.1)
+        ai_run_object = AsyncRun(obj, self.current_state, self.turn_time_limit*1.1, be_silent=self.be_silent)
         result, msg = ai_run_object.run()
         # print("DEBUG: after ai_run_object. Result: {}. Msg {}".format(result, msg))
         if result != None:
@@ -187,9 +209,9 @@ class KalahGamer:
         elif msg == "Timeout":
             self.end_game_on_time()
 
-
     def process_ai_move(self, hole):
-        print("Make AI move", self.active_player, hole)
+        if not self.be_silent:
+            print("Make AI move", self.active_player, hole)
 
         if self.on_game:
             self.make_move(self.active_player, hole)
@@ -208,12 +230,13 @@ class KalahGamer:
                 self.game_winner = 0
                 msg = "Game over. It's a draw!"
             msg += " Score %d:%d" % (score[0], score[1])
-            self.game_result = {'message': msg, 'score_text': "%d:%d" % (score[0], score[1]),
+            self.game_results += [{'message': msg, 'score_text': "%d:%d" % (score[0], score[1]),
                                 'score': (score[0], score[1]), 'winner': self.game_winner,
-                                'reason': 'normal', 'total_time': self.total_timer.elapsed()}
+                                'reason': 'normal', 'total_time': self.total_timer.elapsed()}]
             self.on_game = False
 
             self.save_results()
+
             self.process_next_game()
 
     def end_game_on_time(self):
@@ -222,12 +245,13 @@ class KalahGamer:
             self.game_winner = 2 - self.active_player
             self.game_result_score = "Time out"
             msg = "Time out. Player %d wins!" % (2 - self.active_player)
-            self.game_result = {'message': msg, 'score_text': "?:?",
+            self.game_results += [{'message': msg, 'score_text': "?:?",
                                 'score': (-1, -1), 'winner': self.game_winner,
-                                'reason': 'timeout', 'total_time': self.total_timer.elapsed()}
+                                'reason': 'timeout', 'total_time': self.total_timer.elapsed()}]
             self.on_game = False
 
             self.save_results()
+
             self.process_next_game()
 
     def make_move(self, player, hole):
@@ -235,9 +259,11 @@ class KalahGamer:
             return
 
         self.move_result = self.current_state.move(player, hole)
-        print("Current state:", self.current_state.to_string())
+        if not self.be_silent:
+            print("Current state:", self.current_state.to_string())
         if self.move_result == st.WrongMove:
-            print("Wrong move!")
+            if not self.be_silent:
+                print("Wrong move!")
             return
 
         self.history.append(
@@ -252,40 +278,43 @@ class KalahGamer:
             # self.restart_game_timer()
 
     def save_results(self):
-        secs = self.game_result['total_time']
+        secs = self.game_results[-1]['total_time']
         mins, secs = secs / 60, secs % 60
         hrs, mins = mins / 60, mins % 60
 
-        with open(self.history_file + '-{}.txt'.format(time.strftime('%d.%m.%Y %H:%M')), 'w') as f:
-            f.write("# Player 1: %s\n" % (self.players_title[0],))
-            f.write("# Player 2: %s\n" % (self.players_title[1],))
-            f.write("# Score: %s\n" % (self.game_result['score_text'],))
+        if self.store_results:
+            with open(self.history_file + '-{}.txt'.format(time.strftime('%d.%m.%Y %H:%M')), 'w') as f:
+                f.write("# Player 1: %s\n" % (self.players_title[0],))
+                f.write("# Player 2: %s\n" % (self.players_title[1],))
+                f.write("# Score: %s\n" % (self.game_results[-1]['score_text'],))
 
-            f.write("# Total time: %02d:%02d:%02d\n" % (hrs, mins, secs))
+                f.write("# Total time: %02d:%02d:%02d\n" % (hrs, mins, secs))
 
-            f.write("# " + self.game_result['message'] + "\n")
-            f.write("# Game protocol\n")
-            f.write("- - %s\n" % (self.initial_state.to_string()))
-            for record in self.history:
-                f.write("%d %d %s\n" % (record['player'], record['hole'], record['state'].to_string()))
-            # map(lambda x: f.write("%d %d %s\n" % (x['player'], x['hole'], x['state'].to_string())), self.history)
+                f.write("# " + self.game_results[-1]['message'] + "\n")
+                f.write("# Game protocol\n")
+                f.write("- - %s\n" % (self.initial_state.to_string()))
+                for record in self.history:
+                    f.write("%d %d %s\n" % (record['player'], record['hole'], record['state'].to_string()))
+                # map(lambda x: f.write("%d %d %s\n" % (x['player'], x['hole'], x['state'].to_string())), self.history)
 
-        with open(self.result_file, 'a') as f:
-            f.write("{} | {} | {} vs. {} | {}".format(
-                time.strftime('%d.%m.%Y %H:%M'),
-                "%02d:%02d:%02d" % (hrs, mins, secs),
-                self.players_title[0], self.players_title[1], self.game_winner))
-            if self.game_result['reason'] == 'timeout':
-                f.write(" Timeout\n")
-            else:
-                f.write(" %s\n" % (self.game_result['score_text']))
+            with open(self.result_file, 'a') as f:
+                f.write("{} | {} | {} vs. {} | {}".format(
+                    time.strftime('%d.%m.%Y %H:%M'),
+                    "%02d:%02d:%02d" % (hrs, mins, secs),
+                    self.players_title[0], self.players_title[1], self.game_winner))
+                if self.game_results[-1]['reason'] == 'timeout':
+                    f.write(" Timeout\n")
+                else:
+                    f.write(" %s\n" % (self.game_results[-1]['score_text']))
 
-        print(self.game_result['message'])
-        print("Game finished!")
+        if not self.be_silent:
+            print(self.game_results[-1]['message'])
+            print("Game finished!")
 
     def run_games(self, games):
         self.games = games
         self.process_next_game()
+        return self.game_results
 
     def process_next_game(self):
         if self.games:
@@ -295,9 +324,13 @@ class KalahGamer:
 
 def run_single_game(player_1, player_2, players_path='methods',
                     logs_path='game_logs', rolling_game=False,
-                    turn_time_limit=30):
-    sys.path.append(join(sys.path[0], players_path))
-    gamer = KalahGamer(result_file=logs_path + os.sep + 'results.txt', turn_time_limit=turn_time_limit)
+                    turn_time_limit=30, save_results=True, be_silent=False):
+    if players_path != "":
+        sys.path.append(join(sys.path[0], players_path))
+
+    gamer = KalahGamer(result_file=logs_path + os.sep + 'results.txt',
+                       turn_time_limit=turn_time_limit, store_results=save_results,
+                       method_path=players_path, be_silent=be_silent)
     players = gamer.get_players()
 
     if player_1 not in players:
@@ -316,15 +349,18 @@ def run_single_game(player_1, player_2, players_path='methods',
         history_file = logs_path + os.sep + player_2.replace(' ', '') + '_' + player_1.replace(' ', '')
         games.append({'player1': player_2, 'player2': player_1, 'history_file': history_file})
 
-    print(f"Starting a game: {player_1} vs. {player_2}")
+    # print(f"Starting a game: {player_1} vs. {player_2}")
 
     gamer.run_games(games)
+    return gamer.game_results[0]
 
 
 def run_tournament_one_to_many(player_one="", evaluation_methods=[],
                                player_path='methods', logs_path='game_logs',
                                turn_time_limit=30):
-    sys.path.append(join(sys.path[0], player_path))
+    if player_path != "":
+        sys.path.append(join(sys.path[0], player_path))
+
     gamer = KalahGamer(result_file=logs_path + os.sep + 'results.txt', turn_time_limit=turn_time_limit)
     players = gamer.get_players()
 
@@ -357,4 +393,4 @@ if __name__ == "__main__":
     #                            turn_time_limit=10)
 
     # Run a single game between two players
-    run_single_game("BlankHole", "BlankHole", rolling_game=False, turn_time_limit=5)
+    run_single_game("Random", "Random", rolling_game=False, turn_time_limit=5, save_results=False, players_path="")
